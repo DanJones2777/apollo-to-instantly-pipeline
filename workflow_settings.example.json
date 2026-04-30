@@ -1,0 +1,19 @@
+{
+  "campaign_brief": {
+    "segment": "Fintech founders at small startups doing hiring themselves",
+    "proof_point": "Circle: 6 hires, $150k saved",
+    "cta": "Book a quick intro call",
+    "notes": "The AI agent should ask the user to approve campaign_name, email_subject, and email_body before running."
+  },
+  "instantly": {
+    "campaign_name": "Fintech Founders - Circle Proof",
+    "campaign_duration_days": 30,
+    "skip_if_in_workspace": true,
+    "fail_fast": false,
+    "timezone": "America/Chicago",
+    "schedule_from": "08:00",
+    "schedule_to": "10:00",
+    "email_subject": "New role at a startup!",
+    "email_body": "<p>Hi {{first_name}},</p><p>{{personalization}}</p>"
+  }
+}

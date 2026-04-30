@@ -1,0 +1,13 @@
+{
+  "campaign_brief": {
+    "segment": "Fintech founders at small startups doing hiring themselves",
+    "proof_point": "Circle: 6 hires, $150k saved",
+    "cta": "Book a quick intro call",
+    "notes": "Use this as a conversation artifact. The AI should ask the user to approve final copy before running."
+  },
+  "instantly": {
+    "campaign_name": "Fintech Founders - Circle Proof",
+    "email_subject": "Hiring help for {{company_name}}",
+    "email_body": "<p>Hi {{first_name}},</p><p>Saw {{company_name}} is growing. Founders at this stage often end up carrying hiring alongside product, finance, and customers.</p><p>We helped Circle make 6 hires and save $150k in agency fees by matching them with AI-native talent.</p><p>Worth a quick chat?</p>"
+  }
+}
