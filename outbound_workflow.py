@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import argparse
 import csv
 import json
@@ -279,21 +281,34 @@ def canonicalize_lead(row: dict[str, Any]) -> dict[str, Any]:
     first_name = first_present(row, ["first_name", "First Name", "firstName", "first"])
     last_name = first_present(row, ["last_name", "Last Name", "lastName", "last"])
 
+    company_name = first_present(
+        row,
+        ["Company_Name_rounded", "company_name", "Company Name", "Company", "company", "organization_name"],
+    )
+    job_title = first_present(row, ["Title_rounded", "job_title", "title", "Title"])
+
     lead = {
         "email": email,
         "first_name": first_name,
         "last_name": last_name,
-        "company_name": first_present(row, ["company_name", "Company", "company", "organization_name"]),
-        "linkedin_url": first_present(row, ["linkedin_url", "LinkedIn", "linkedin", "person_linkedin_url"]),
+        "company_name": company_name,
+        "linkedin_url": first_present(
+            row,
+            ["linkedin_url", "Person Linkedin Url", "LinkedIn", "linkedin", "person_linkedin_url"],
+        ),
         "personalization": first_present(row, ["personalization", "Personalization", "icebreaker"]),
-        "job_title": first_present(row, ["job_title", "title", "Title"]),
+        "job_title": job_title,
         "phone": first_present(row, ["phone", "Phone", "phone_number"]),
-        "website": first_present(row, ["website", "website_url", "company_website", "domain"]),
+        "website": first_present(row, ["website", "Website", "website_url", "company_website", "domain"]),
         "organization_domain": first_present(
             row,
-            ["organization_domain", "company_domain", "domain", "website", "website_url"],
+            ["organization_domain", "company_domain", "domain", "website", "Website", "website_url"],
         ),
         "apollo_id": first_present(row, ["apollo_id", "id", "person_id", "contact_id"]),
+        "company_description": first_present(row, ["company_description"]),
+        "subvertical": first_present(row, ["subvertical"]),
+        "team_size_rounded": first_present(row, ["team_size_rounded"]),
+        "industry": first_present(row, ["industry", "Industry"]),
     }
 
     return lead
@@ -674,8 +689,14 @@ def instantly_lead_payload(lead: dict[str, Any], campaign_id: str, skip_if_in_wo
         payload["job_title"] = lead["job_title"]
     if lead.get("phone"):
         payload["phone"] = lead["phone"]
-    if lead.get("linkedin_url"):
-        payload["custom_variables"] = {"linkedin_url": lead["linkedin_url"]}
+
+    custom: dict[str, str] = {}
+    for key in ("linkedin_url", "company_description", "subvertical", "team_size_rounded", "industry"):
+        value = lead.get(key)
+        if value:
+            custom[key] = str(value)
+    if custom:
+        payload["custom_variables"] = custom
 
     return payload
 
@@ -689,6 +710,28 @@ def add_lead_to_instantly(config: WorkflowConfig, campaign_id: str, lead: dict[s
     )
     response.raise_for_status()
     return response.json()
+
+
+def _safe_filename(name: str) -> str:
+    return "".join(c if c.isalnum() or c in "-_." else "_" for c in name).strip("_") or "campaign"
+
+
+def _save_leads_csv(path: str, leads: list[dict[str, Any]]) -> None:
+    if not leads:
+        return
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
+    fieldnames: list[str] = []
+    seen: set[str] = set()
+    for lead in leads:
+        for key in lead.keys():
+            if key not in seen:
+                fieldnames.append(key)
+                seen.add(key)
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        for lead in leads:
+            writer.writerow({k: lead.get(k, "") for k in fieldnames})
 
 
 def validate_and_add_to_instantly(
@@ -708,14 +751,24 @@ def validate_and_add_to_instantly(
     if not all_emails:
         raise RuntimeError("No emails found after CSV/Apollo enrichment")
 
+    out_dir = Path("runs") / _safe_filename(campaign_name)
+
     reoon_task_id = submit_reoon_task(config.reoon_api_key, all_emails)
     reoon_result = poll_reoon_task(config, reoon_task_id)
     reoon_passed = dedupe_preserve_order(filter_reoon_results(reoon_result, all_emails))
+    _save_leads_csv(
+        str(out_dir / "reoon_passed.csv"),
+        [leads_by_email[e] for e in reoon_passed if e in leads_by_email],
+    )
 
     bounceban_task_id = submit_bounceban_task(config.bounceban_api_key, reoon_passed)
     poll_bounceban_task(config, bounceban_task_id)
     bounceban_dump = fetch_bounceban_dump(config.bounceban_api_key, bounceban_task_id)
     deliverable = dedupe_preserve_order(filter_bounceban_deliverables(bounceban_dump, reoon_passed))
+    _save_leads_csv(
+        str(out_dir / "bounceban_deliverable.csv"),
+        [leads_by_email[e] for e in deliverable if e in leads_by_email],
+    )
 
     campaign = create_instantly_campaign(config, campaign_name)
 
