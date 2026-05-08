@@ -296,7 +296,7 @@ def canonicalize_lead(row: dict[str, Any]) -> dict[str, Any]:
             row,
             ["linkedin_url", "Person Linkedin Url", "LinkedIn", "linkedin", "person_linkedin_url"],
         ),
-        "personalization": first_present(row, ["personalization", "Personalization", "icebreaker"]),
+        "personalization": first_present(row, ["personalization", "Personalization", "icebreaker", "Poem", "poem"]),
         "job_title": job_title,
         "phone": first_present(row, ["phone", "Phone", "phone_number"]),
         "website": first_present(row, ["website", "Website", "website_url", "company_website", "domain"]),
