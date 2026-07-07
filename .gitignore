@@ -5,3 +5,6 @@ __pycache__/
 .DS_Store
 runs/
 workflow_settings.json
+.claude/
+pipeline_state.json
+pipeline_log.json
